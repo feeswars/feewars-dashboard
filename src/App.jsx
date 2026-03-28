@@ -269,12 +269,12 @@ export default function App() {
   const rawPrice = oracleData?.price ? parseInt(oracleData.price) : 0
   const price = dexPriceEth > 0 ? dexPriceEth : (isLive?(rawPrice > 0 ? rawPrice / 1e36 : 0):sim.price)
   const dexVol24h = dexData?.volume?.h24 ? parseFloat(dexData.volume.h24) : 0
-  const dexPriceChange = dexData?.priceChange?.h24 != null ? parseFloat(dexData.priceChange.h24) : chgPct
   const dexTxns24h = dexData?.txns?.h24 ? (dexData.txns.h24.buys||0)+(dexData.txns.h24.sells||0) : 0
   const dexMcap = dexData?.marketCap ? parseFloat(dexData.marketCap) : 0
   if(!isLive)price0Ref.current=sim.price0
   const chgPct=price0Ref.current>0?((price-price0Ref.current)/price0Ref.current*100):0
   const isUp=chgPct>=0
+  const dexPriceChange = dexData?.priceChange?.h24 != null ? parseFloat(dexData.priceChange.h24) : chgPct
 
   const ICONS=['🐋','⚡','🎯','🔥','🛡','🤖','🐳','🤝']
   const liveBoard=isLive&&oracleData?.leaderboard?oracleData.leaderboard.map((e,i)=>({n:e.short||shortAddr(e.wallet),fullAddr:e.wallet,cls:'trader',ico:ICONS[i%ICONS.length],pnl:weiToEth(e.realized),vol:weiToEth(e.volume),rank:e.rank,d:i*.18+'s'})):null
