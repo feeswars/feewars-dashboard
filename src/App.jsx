@@ -12,9 +12,10 @@ import {
 const ARENA_ADDRESS  = import.meta.env.VITE_ARENA_ADDRESS
 const TOKEN_ADDRESS  = import.meta.env.VITE_TOKEN_ADDRESS
 const ORACLE_API_URL = import.meta.env.VITE_ORACLE_API_URL || ''
-const BANKR_URL      = `https://bankr.bot/launches/0x8104766a179702658dcb8b90e20c5ec80fc9aba3`
+const BANKR_URL      = 'https://bankr.bot/launches/0x8104766a179702658dcb8b90e20c5ec80fc9aba3'
+const BANKR_SWAP_URL = 'https://swap.bankr.bot/?inputToken=ETH&outputToken=0x8104766a179702658dcb8b90e20c5ec80fc9aba3'
 const X_URL          = 'https://x.com/feewars'
-const UNISWAP_URL    = BANKR_URL
+const UNISWAP_URL    = BANKR_SWAP_URL
 const WETH_BASE      = '0x4200000000000000000000000000000000000006'
 const ROUND_DURATION = 3600
 
@@ -282,7 +283,8 @@ export default function App() {
             <div className="chip" style={{color:'var(--gold)',borderColor:'rgba(255,201,64,.3)'}}>👑 {crown}</div>
             <button className="hdr-btn howto" onClick={()=>setShowHTP(true)}>? HOW TO PLAY</button>
             <a href="https://x.com/feewars" target="_blank" rel="noreferrer" className="hdr-btn" style={{textDecoration:'none',color:'inherit'}}>𝕏 FOLLOW</a>
-            <button className="hdr-btn buy" onClick={()=>window.open(BANKR_URL,'_blank')}>BUY ON BANKR ↗</button>
+            <button className="hdr-btn bankr-page" onClick={()=>window.open(BANKR_URL,'_blank')}>BANKR PAGE ↗</button>
+            <button className="hdr-btn buy" onClick={()=>window.open(BANKR_SWAP_URL,'_blank')}>BUY ON BANKR ↗</button>
             <ConnectButton label="CONNECT" accountStatus="address" chainStatus="icon" showBalance={false}/>
           </div>
         </header>

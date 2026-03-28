@@ -73,6 +73,8 @@ body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .hdr-btn.howto:hover{background:rgba(0,82,255,.3)}
 .hdr-btn.buy{background:var(--base);color:#fff;box-shadow:0 0 14px var(--base-glow)}
 .hdr-btn.buy:hover{background:var(--base2)}
+.hdr-btn.bankr-page{background:transparent;border:1px solid rgba(0,82,255,.5);color:var(--base)}
+.hdr-btn.bankr-page:hover{background:rgba(0,82,255,.12);border-color:var(--base)}
 
 /* ── Stats ── */
 .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
