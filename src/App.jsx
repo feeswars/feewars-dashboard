@@ -12,9 +12,9 @@ import {
 const ARENA_ADDRESS  = import.meta.env.VITE_ARENA_ADDRESS
 const TOKEN_ADDRESS  = import.meta.env.VITE_TOKEN_ADDRESS
 const ORACLE_API_URL = import.meta.env.VITE_ORACLE_API_URL || ''
-const UNISWAP_URL    = TOKEN_ADDRESS
-  ? `https://app.uniswap.org/swap?outputCurrency=${TOKEN_ADDRESS}&chain=base`
-  : 'https://app.uniswap.org/?chain=base'
+const BANKR_URL      = `https://bankr.bot/token/0x8104766a179702658dcb8b90e20c5ec80fc9aba3`
+const X_URL          = 'https://x.com/feewars'
+const UNISWAP_URL    = BANKR_URL
 const WETH_BASE      = '0x4200000000000000000000000000000000000006'
 const ROUND_DURATION = 3600
 
@@ -251,7 +251,16 @@ export default function App() {
         <header className="header">
           <div className="logo-row">
             <div className="base-ball">B</div>
-            <div><div className="logo"><em>FEE</em> WARS</div><div className="logo-sub">THE ARENA · BUILT ON BASE</div></div>
+            <div>
+              <div className="logo"><em>FEE</em> WARS</div>
+              <div className="logo-sub">
+                THE ARENA · BUILT ON BASE &nbsp;
+                <a href="https://x.com/FeeWarsArena" target="_blank" rel="noopener noreferrer"
+                  style={{color:'var(--base)',textDecoration:'none',fontSize:9,fontFamily:'var(--mono)',letterSpacing:1}}>
+                  𝕏 FOLLOW
+                </a>
+              </div>
+            </div>
           </div>
           <div className="hdr-right">
             <div className="chip live">{isLive?'LIVE':'SIM'}</div>
@@ -259,7 +268,8 @@ export default function App() {
             <div className="chip" style={{color:'var(--teal)',borderColor:'rgba(0,212,170,.3)'}}>Ξ{price.toFixed(5)}</div>
             <div className="chip" style={{color:'var(--gold)',borderColor:'rgba(255,201,64,.3)'}}>👑 {crown}</div>
             <button className="hdr-btn howto" onClick={()=>setShowHTP(true)}>? HOW TO PLAY</button>
-            <button className="hdr-btn buy" onClick={()=>window.open(UNISWAP_URL,'_blank')}>BUY TOKEN ↗</button>
+            <a href="https://x.com/feewars" target="_blank" rel="noreferrer" className="hdr-btn" style={{textDecoration:'none',color:'inherit'}}>𝕏 FOLLOW</a>
+            <button className="hdr-btn buy" onClick={()=>window.open(BANKR_URL,'_blank')}>BUY ON BANKR ↗</button>
             <ConnectButton label="CONNECT" accountStatus="address" chainStatus="icon" showBalance={false}/>
           </div>
         </header>
