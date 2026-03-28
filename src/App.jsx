@@ -50,9 +50,10 @@ function Starfield() {
   return <canvas ref={ref} style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none'}}/>
 }
 
-function MyPosition({oracleData}) {
+function MyPosition({oracleData,feesBal}) {
   const {address,isConnected} = useAccount()
   const {data:wethBal} = useBalance({address,token:WETH_BASE,chainId:base.id,enabled:!!address,watch:true})
+  const {data:feesTokenBal} = useBalance({address,token:TOKEN_ADDRESS,chainId:base.id,enabled:!!address,watch:true})
   const {data:claimData} = useReadContracts({
     contracts:[{address:ARENA_ADDRESS,abi:ARENA_ABI,functionName:'pendingClaims',args:[address],chainId:base.id}],
     enabled:!!address&&!!ARENA_ADDRESS,
@@ -80,6 +81,17 @@ function MyPosition({oracleData}) {
       <div className={`pos-val ${pnlEth>=0?'pos':'neg'}`}>{pnlEth>=0?'+':''}{fmt4(pnlEth)} Ξ</div>
       <div className="pos-lbl">MY VOLUME</div>
       <div className="pos-val">{fmt4(volEth)} Ξ</div>
+      {feesTokenBal&&parseFloat(feesTokenBal.formatted)>0&&<>
+        <div className="pos-lbl" style={{marginTop:8}}>$FEES HOLDINGS</div>
+        <div className="pos-val" style={{color:'var(--gold)',fontSize:'clamp(10px,1.5vw,13px)'}}>
+          {parseFloat(feesTokenBal.formatted).toLocaleString('en-US',{maximumFractionDigits:0})} FEES
+        </div>
+        {dexData&&<div className="pos-sub" style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--gray)'}}>
+          ≈ ${(parseFloat(feesTokenBal.formatted)*parseFloat(dexData.priceUsd||0)).toFixed(2)} USD
+        </div>}
+      </>}
+      {feesDisplay&&<><div className="pos-lbl" style={{marginTop:10}}>$FEES BALANCE</div>
+      <div className="pos-val" style={{color:'var(--gold)'}}>{parseFloat(feesDisplay.formatted).toLocaleString('en-US',{maximumFractionDigits:0})} FEES</div></>}
       <div className="pos-lbl">INSTANT CLAIMABLE</div>
       <div className="pos-val pos">{fmt4(claimEth)} Ξ</div>
       <button className="claim-btn" disabled={claimEth===0} onClick={()=>alert('Claim tx — wagmi write integration coming')}>CLAIM REWARDS</button>
@@ -330,7 +342,7 @@ export default function App() {
               <div className="panel" style={{borderColor:'rgba(0,82,255,.4)'}}>
                 <div className="ph" style={{borderColor:'rgba(0,82,255,.2)'}}><span className="pt blue">◈ BATTLE WHEEL</span><span className="pm">{isLive?'LIVE':'SIMULATED'}</span></div>
                 <div className="wheel-wrap">
-                  <canvas ref={wheelRef} width={146} height={146} style={{flexShrink:0}}/>
+                  <canvas ref={wheelRef} width={220} height={220} style={{flexShrink:0,maxWidth:'100%'}}/>
                   {wheelEntry&&<div className="wi"><div className="wi-rank">{wIdx===0?'RANK #1 · 👑 CROWN':`RANK #${wIdx+1}`}</div><div className="wi-name">{wheelEntry.n}</div><div className={`wi-pnl${wheelEntry.pnl<0?' neg':''}`}>{wheelEntry.pnl>=0?'+':''}{fmt4(wheelEntry.pnl)} Ξ</div><div className="wi-vol">VOL: {fmt4(wheelEntry.vol||0)} Ξ</div><div className={`wi-cls ${wheelEntry.cls||'trader'}`}>{(wheelEntry.cls||'TRADER').toUpperCase()}</div></div>}
                 </div>
               </div>
@@ -357,7 +369,7 @@ export default function App() {
           <div className="sidebar">
             <div className="panel" style={{borderColor:'rgba(0,212,170,.3)'}}>
               <div className="ph" style={{borderColor:'rgba(0,212,170,.2)'}}><span className="pt teal">◈ MY POSITION</span><span className="pm">WALLET</span></div>
-              <MyPosition oracleData={oracleData}/>
+              <MyPosition oracleData={oracleData} feesBal={feesBal}/>
             </div>
 
             <div className="panel" style={{borderColor:'rgba(255,201,64,.3)'}}>

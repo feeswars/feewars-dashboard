@@ -64,40 +64,163 @@ export function getLeaderboard(traders) {
 // Draw the battle wheel on a canvas element
 const WHEEL_COLS = ['#0052FF','#00d4aa','#ffc940','#ff3355','#ff8800','#aa44ff','#00aaff','#ff44aa']
 
+// Cached logo image for wheel hub
+let _logoImg = null
+function getLogoImg() {
+  if (_logoImg) return _logoImg
+  _logoImg = new Image()
+  _logoImg.crossOrigin = 'anonymous'
+  _logoImg.src = 'https://i.imgur.com/Lz4mwY0.jpeg'
+  return _logoImg
+}
+
 export function drawWheel(canvas, lb, angle) {
   if (!canvas) return
   const ctx = canvas.getContext('2d')
-  const CX=73, CY=73, R=56, HUB=19
-  ctx.clearRect(0, 0, 146, 146)
-  const n = Math.min(lb.length, 8)
-  if (!n) return
-  const arc = (Math.PI * 2) / n
-  for (let i = 0; i < n; i++) {
-    const s = angle + i * arc - Math.PI / 2
-    const e = s + arc - .04
-    const col = WHEEL_COLS[i % WHEEL_COLS.length]
-    ctx.beginPath(); ctx.moveTo(CX, CY); ctx.arc(CX, CY, R, s, e); ctx.closePath()
-    ctx.fillStyle = i === 0 ? col : col + '44'; ctx.fill()
-    if (i === 0) { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke() }
-    const mid = s + arc / 2
-    ctx.font = '12px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-    ctx.fillText(lb[i].ico, CX + (R * .65) * Math.cos(mid), CY + (R * .65) * Math.sin(mid))
+  const W=canvas.width, H=canvas.height
+  const CX=W/2, CY=H/2
+  const R=Math.min(W,H)/2 - 18
+  const HUB = R * 0.34
+  ctx.clearRect(0, 0, W, H)
+
+  const n = Math.min(lb.length, 10)
+
+  // Outer glow ring
+  const glow = ctx.createRadialGradient(CX,CY,R-4,CX,CY,R+14)
+  glow.addColorStop(0,'rgba(0,82,255,.35)')
+  glow.addColorStop(.5,'rgba(0,82,255,.12)')
+  glow.addColorStop(1,'rgba(0,82,255,0)')
+  ctx.beginPath(); ctx.arc(CX,CY,R+10,0,Math.PI*2)
+  ctx.fillStyle=glow; ctx.fill()
+
+  if (n === 0) {
+    // Empty state — show pulsing logo
+    drawHub(ctx, CX, CY, HUB * 1.6, angle)
+    // Spinning dashed ring
+    ctx.save()
+    ctx.setLineDash([8,6])
+    ctx.lineDashOffset = -angle * 30
+    ctx.beginPath(); ctx.arc(CX,CY,R,0,Math.PI*2)
+    ctx.strokeStyle='rgba(0,82,255,.3)'; ctx.lineWidth=1.5; ctx.stroke()
+    ctx.restore()
+    return
   }
-  ctx.beginPath(); ctx.arc(CX, CY, R+2, 0, Math.PI*2)
-  ctx.strokeStyle = 'rgba(0,82,255,.5)'; ctx.lineWidth = 2; ctx.stroke()
-  ctx.beginPath(); ctx.arc(CX, CY, R+6, 0, Math.PI*2)
-  ctx.strokeStyle = 'rgba(0,82,255,.12)'; ctx.lineWidth = 5; ctx.stroke()
-  // Hub
-  ctx.beginPath(); ctx.arc(CX, CY, HUB, 0, Math.PI*2)
-  const hg = ctx.createRadialGradient(CX, CY, 0, CX, CY, HUB)
-  hg.addColorStop(0, '#122240'); hg.addColorStop(1, '#0a1525')
-  ctx.fillStyle = hg; ctx.fill()
-  ctx.strokeStyle = '#0052FF'; ctx.lineWidth = 2; ctx.stroke()
-  ctx.font = '13px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-  ctx.fillText(lb[0]?.ico || '⚔', CX, CY)
-  // Pointer
-  ctx.beginPath(); ctx.moveTo(CX, CY-R+2); ctx.lineTo(CX-6, CY-R-12); ctx.lineTo(CX+6, CY-R-12); ctx.closePath()
-  ctx.fillStyle = '#0052FF'; ctx.shadowColor = '#0052FF'; ctx.shadowBlur = 8; ctx.fill(); ctx.shadowBlur = 0
+
+  const arc = (Math.PI*2) / n
+  // Draw segments
+  for (let i=0; i<n; i++) {
+    const s = angle + i*arc - Math.PI/2
+    const e = s + arc - 0.03
+    const col = WHEEL_COLS[i % WHEEL_COLS.length]
+    const isLeader = i===0
+
+    // Segment fill
+    ctx.beginPath(); ctx.moveTo(CX,CY); ctx.arc(CX,CY,R,s,e); ctx.closePath()
+    if (isLeader) {
+      const sg = ctx.createRadialGradient(CX,CY,0,CX,CY,R)
+      sg.addColorStop(0, col+'55')
+      sg.addColorStop(1, col+'22')
+      ctx.fillStyle=sg
+    } else {
+      ctx.fillStyle = col+'18'
+    }
+    ctx.fill()
+
+    // Segment border
+    ctx.beginPath(); ctx.moveTo(CX,CY); ctx.arc(CX,CY,R,s,e); ctx.closePath()
+    ctx.strokeStyle = isLeader ? col+'cc' : col+'33'
+    ctx.lineWidth = isLeader ? 1.5 : 0.8
+    ctx.stroke()
+
+    // Emoji icon on segment
+    const mid = s + arc/2
+    const ir = R * 0.68
+    ctx.save()
+    ctx.font = `${Math.max(11, R*0.18)}px serif`
+    ctx.textAlign='center'; ctx.textBaseline='middle'
+    if (isLeader) { ctx.shadowColor=col; ctx.shadowBlur=8 }
+    ctx.fillText(lb[i].ico||'⚡', CX+ir*Math.cos(mid), CY+ir*Math.sin(mid))
+    ctx.restore()
+
+    // Short name on segment for larger wheels
+    if (R > 80 && lb[i].n) {
+      const nr = R * 0.42
+      ctx.save()
+      ctx.font = `${Math.max(6,R*0.085)}px monospace`
+      ctx.fillStyle = isLeader ? '#fff' : 'rgba(255,255,255,.4)'
+      ctx.textAlign='center'; ctx.textBaseline='middle'
+      ctx.fillText(lb[i].n.slice(0,6), CX+nr*Math.cos(mid), CY+nr*Math.sin(mid))
+      ctx.restore()
+    }
+  }
+
+  // Outer rim
+  ctx.beginPath(); ctx.arc(CX,CY,R+1,0,Math.PI*2)
+  ctx.strokeStyle='rgba(0,82,255,.6)'; ctx.lineWidth=2; ctx.stroke()
+
+  // Spinning tick marks on rim
+  ctx.save()
+  ctx.setLineDash([2,8])
+  ctx.lineDashOffset = -angle*20
+  ctx.beginPath(); ctx.arc(CX,CY,R+7,0,Math.PI*2)
+  ctx.strokeStyle='rgba(0,82,255,.2)'; ctx.lineWidth=3; ctx.stroke()
+  ctx.restore()
+
+  // Draw hub with logo
+  drawHub(ctx, CX, CY, HUB, angle)
+
+  // Crown indicator for leader
+  if (n > 0) {
+    const leaderAngle = angle - Math.PI/2
+    const px = CX + (R+14) * Math.cos(leaderAngle)
+    const py = CY + (R+14) * Math.sin(leaderAngle)
+    ctx.font='14px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'
+    ctx.fillText('👑', px, py)
+  }
+}
+
+function drawHub(ctx, CX, CY, HUB, angle) {
+  // Hub background
+  ctx.beginPath(); ctx.arc(CX,CY,HUB+3,0,Math.PI*2)
+  const hbg = ctx.createRadialGradient(CX,CY,0,CX,CY,HUB+3)
+  hbg.addColorStop(0,'#0e1d33')
+  hbg.addColorStop(1,'#060d1a')
+  ctx.fillStyle=hbg; ctx.fill()
+
+  // Logo image clipped to circle
+  const img = getLogoImg()
+  if (img.complete && img.naturalWidth > 0) {
+    ctx.save()
+    ctx.beginPath(); ctx.arc(CX,CY,HUB-1,0,Math.PI*2); ctx.clip()
+    ctx.drawImage(img, CX-HUB+1, CY-HUB+1, (HUB-1)*2, (HUB-1)*2)
+    ctx.restore()
+    // Logo overlay glow
+    ctx.beginPath(); ctx.arc(CX,CY,HUB-1,0,Math.PI*2)
+    const lg = ctx.createRadialGradient(CX,CY,HUB*.4,CX,CY,HUB)
+    lg.addColorStop(0,'rgba(0,0,0,0)')
+    lg.addColorStop(1,'rgba(0,82,255,.3)')
+    ctx.fillStyle=lg; ctx.fill()
+  } else {
+    // Fallback: text hub
+    ctx.beginPath(); ctx.arc(CX,CY,HUB-1,0,Math.PI*2)
+    ctx.fillStyle='#0a1525'; ctx.fill()
+    ctx.font=`${HUB*.7}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'
+    ctx.fillText('⚔', CX, CY)
+  }
+
+  // Hub ring
+  ctx.beginPath(); ctx.arc(CX,CY,HUB,0,Math.PI*2)
+  ctx.strokeStyle='#0052FF'; ctx.lineWidth=2
+  ctx.shadowColor='#0052FF'; ctx.shadowBlur=10
+  ctx.stroke(); ctx.shadowBlur=0
+
+  // Spinning inner ring
+  ctx.save()
+  ctx.setLineDash([4,4])
+  ctx.lineDashOffset = angle*15
+  ctx.beginPath(); ctx.arc(CX,CY,HUB+5,0,Math.PI*2)
+  ctx.strokeStyle='rgba(0,82,255,.35)'; ctx.lineWidth=1; ctx.stroke()
+  ctx.restore()
 }
 
 // Draw price chart on a canvas
