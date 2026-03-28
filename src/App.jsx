@@ -345,9 +345,19 @@ export default function App() {
                   {wheelEntry&&<div className="wi"><div className="wi-rank">{wIdx===0?'RANK #1 · 👑 CROWN':`RANK #${wIdx+1}`}</div><div className="wi-name">{wheelEntry.n}</div><div className={`wi-pnl${wheelEntry.pnl<0?' neg':''}`}>{wheelEntry.pnl>=0?'+':''}{fmt4(wheelEntry.pnl)} Ξ</div><div className="wi-vol">VOL: {fmt4(wheelEntry.vol||0)} Ξ</div><div className={`wi-cls ${wheelEntry.cls||'trader'}`}>{(wheelEntry.cls||'TRADER').toUpperCase()}</div></div>}
                 </div>
               </div>
-              <div className="panel">
-                <div className="ph"><span className="pt teal">◈ TOKEN PRICE</span><span className="pm">{isLive?'LIVE':'SIMULATED'}</span></div>
-                <div className="chart-wrap"><canvas ref={chartRef} className="chart-canvas"/><div className="chart-ov"><span className="cp">Ξ{price.toFixed(5)}</span><span className={`cc ${isUp?'up':'dn'}`}>{isUp?'▲ +':'▼ '}{Math.abs(chgPct).toFixed(2)}%</span></div></div>
+              <div className="panel" style={{display:'flex',flexDirection:'column'}}>
+                <div className="ph"><span className="pt teal">◈ TOKEN PRICE</span>
+                  <span style={{display:'flex',alignItems:'center',gap:8}}>
+                    <span style={{color:isUp?'var(--teal)':'var(--red)',fontFamily:'var(--mono)',fontSize:9}}>{isUp?'▲ +':'▼ '}{Math.abs(chgPct).toFixed(2)}%</span>
+                    <span className="pm">LIVE</span>
+                  </span>
+                </div>
+                <iframe
+                  src="https://www.geckoterminal.com/base/pools/0xbd9d2b96293bbbd76a7398a7c44b4b51907d97e4d4d8288be885357acee89265?embed=1&info=0&swaps=0&grayscale=0&light_chart=0"
+                  style={{width:'100%',height:260,border:'none',flexGrow:1,minHeight:200}}
+                  title="$FEES Price Chart"
+                  allow="clipboard-write"
+                />
               </div>
             </div>
 
