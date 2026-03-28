@@ -12,26 +12,18 @@ import {
 const ARENA_ADDRESS  = import.meta.env.VITE_ARENA_ADDRESS
 const TOKEN_ADDRESS  = import.meta.env.VITE_TOKEN_ADDRESS
 const ORACLE_API_URL = import.meta.env.VITE_ORACLE_API_URL || ''
-const BANKR_URL      = 'https://bankr.bot/launches/0xa31fbab1c431225a444afbd8acd0aa8cd0d2eba3'
-const BANKR_SWAP_URL = 'https://swap.bankr.bot/?inputToken=ETH&outputToken=0xa31fbab1c431225a444afbd8acd0aa8cd0d2eba3'
+const BANKR_URL      = `https://bankr.bot/launches/0x8104766a179702658dcb8b90e20c5ec80fc9aba3`
 const X_URL          = 'https://x.com/feewars'
-const UNISWAP_URL    = BANKR_SWAP_URL
+const UNISWAP_URL    = BANKR_URL
 const WETH_BASE      = '0x4200000000000000000000000000000000000006'
 const ROUND_DURATION = 3600
-const DEXSCREENER_PAIR = '0x26494e2be99bde2f02800b71e87bf4623b0df94dd3041d0b09799501bc81b945'
-const DEXSCREENER_URL  = `https://dexscreener.com/base/${DEXSCREENER_PAIR}`
 
 const ARENA_ABI = [
-  {inputs:[],name:'currentRoundId',  outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
-  {inputs:[],name:'roundStartTime',  outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
-  {inputs:[],name:'arenaCarry',      outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
-  {inputs:[],name:'feeCrownHolder',  outputs:[{type:'address'}],stateMutability:'view',type:'function'},
-  {inputs:[],name:'feesTokenPool',   outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
-  // v5: claimable returns (wethAmount, feesAmount) tuple
-  {inputs:[{type:'address'}],name:'claimable',outputs:[{type:'uint256',name:'wethAmount'},{type:'uint256',name:'feesAmount'}],stateMutability:'view',type:'function'},
-  {inputs:[{type:'address'}],name:'pendingFeesTokenClaims',outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
-  {inputs:[],name:'claim',           outputs:[],stateMutability:'nonpayable',type:'function'},
-  {inputs:[],name:'claimFeesToken',  outputs:[],stateMutability:'nonpayable',type:'function'},
+  {inputs:[],name:'currentRoundId',outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
+  {inputs:[],name:'roundStartTime', outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
+  {inputs:[],name:'arenaCarry',     outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
+  {inputs:[],name:'feeCrownHolder', outputs:[{type:'address'}],stateMutability:'view',type:'function'},
+  {inputs:[{type:'address'}],name:'pendingClaims',outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
 ]
 const ERC20_ABI = [
   {inputs:[{type:'address'}],name:'balanceOf',outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
@@ -55,21 +47,14 @@ function Starfield() {
   return <canvas ref={ref} style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none'}}/>
 }
 
-function MyPosition({oracleData,usdPrice=0}) {
+function MyPosition({oracleData}) {
   const {address,isConnected} = useAccount()
   const {data:wethBal} = useBalance({address,token:WETH_BASE,chainId:base.id,enabled:!!address,watch:true})
-  const {data:feesTokenBal} = useBalance({address,token:TOKEN_ADDRESS,chainId:base.id,enabled:!!address,watch:true})
   const {data:claimData} = useReadContracts({
-    contracts:[
-      {address:ARENA_ADDRESS,abi:ARENA_ABI,functionName:'claimable',args:[address],chainId:base.id},
-      {address:ARENA_ADDRESS,abi:ARENA_ABI,functionName:'pendingFeesTokenClaims',args:[address],chainId:base.id},
-    ],
+    contracts:[{address:ARENA_ADDRESS,abi:ARENA_ABI,functionName:'pendingClaims',args:[address],chainId:base.id}],
     enabled:!!address&&!!ARENA_ADDRESS,
   })
-  // v5: claimable() returns [wethAmount, feesAmount] tuple
-  const claimResult = claimData?.[0]?.result
-  const claimEth = claimResult ? parseFloat(formatEther(Array.isArray(claimResult) ? claimResult[0] : claimResult)) : 0
-  const claimFeesAmt = claimData?.[1]?.result ? parseFloat(formatEther(claimData[1].result)) : 0
+  const claimEth = claimData?.[0]?.result ? parseFloat(formatEther(claimData[0].result)) : 0
   const myEntry = oracleData?.leaderboard?.find(e=>e.wallet?.toLowerCase()===address?.toLowerCase())
   const pnlEth  = myEntry ? weiToEth(myEntry.realized) : 0
   const volEth  = myEntry ? weiToEth(myEntry.volume)   : 0
@@ -87,38 +72,14 @@ function MyPosition({oracleData,usdPrice=0}) {
     <div className="pos-inner">
       <div className="pos-lbl">WALLET</div>
       <div style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--base)',marginBottom:8}}>{shortAddr(address)}</div>
-      {/* $FEES Balance + Buy Button */}
-      <div style={{background:'rgba(0,82,255,.07)',border:'1px solid rgba(0,82,255,.2)',padding:'10px 12px',marginBottom:10}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-          <div style={{fontFamily:'var(--mono)',fontSize:8,letterSpacing:2,color:'var(--gray)'}}>$FEES BALANCE</div>
-          <button onClick={()=>window.open(BANKR_SWAP_URL,'_blank')}
-            style={{fontFamily:'var(--px)',fontSize:6,letterSpacing:1,padding:'4px 8px',background:'var(--base)',color:'#fff',border:'none',cursor:'pointer',whiteSpace:'nowrap'}}>
-            BUY ↗
-          </button>
-        </div>
-        <div style={{fontFamily:'var(--px)',fontSize:11,color:'var(--gold)'}}>
-          {feesTokenBal?parseFloat(feesTokenBal.formatted).toLocaleString('en-US',{maximumFractionDigits:0}):'—'} FEES
-        </div>
-        {usdPrice>0&&feesTokenBal&&<div style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--gray)',marginTop:3}}>
-          ≈ ${(parseFloat(feesTokenBal?.formatted||'0')*usdPrice).toFixed(2)} USD
-        </div>}
-      </div>
       {wethBal&&<><div className="pos-lbl">WETH BALANCE</div><div className="pos-val">{parseFloat(wethBal.formatted).toFixed(4)} Ξ</div></>}
       <div className="pos-lbl" style={{marginTop:10}}>MY PNL THIS ROUND</div>
       <div className={`pos-val ${pnlEth>=0?'pos':'neg'}`}>{pnlEth>=0?'+':''}{fmt4(pnlEth)} Ξ</div>
       <div className="pos-lbl">MY VOLUME</div>
       <div className="pos-val">{fmt4(volEth)} Ξ</div>
-
       <div className="pos-lbl">INSTANT CLAIMABLE</div>
       <div className="pos-val pos">{fmt4(claimEth)} Ξ</div>
-      <button className="claim-btn" disabled={claimEth===0}
-        onClick={()=>alert('Connect wallet and call claim() on the Arena contract')}>
-        CLAIM WETH {claimEth>0?`(${fmt4(claimEth)} Ξ)`:''}
-      </button>
-      {claimFeesAmt>0&&<button className="claim-btn" style={{marginTop:6,background:'rgba(255,201,64,.15)',border:'1px solid rgba(255,201,64,.4)',color:'var(--gold)'}}
-        onClick={()=>alert('Connect wallet and call claimFeesToken() on the Arena contract')}>
-        CLAIM $FEES ({claimFeesAmt.toLocaleString('en-US',{maximumFractionDigits:0})} FEES)
-      </button>}
+      <button className="claim-btn" disabled={claimEth===0} onClick={()=>alert('Claim tx — wagmi write integration coming')}>CLAIM REWARDS</button>
       {myEntry?.rank&&<><div style={{marginTop:12,paddingTop:10,borderTop:'1px solid var(--border)'}}><div className="pos-lbl">CURRENT RANK</div><div className="pos-val">#{myEntry.rank}</div></div></>}
     </div>
   )
@@ -153,17 +114,6 @@ export default function App() {
   const [oracleData,setOracleData] = useState(null)
   const [oracleLive,setOracleLive] = useState(false)
   const [recentTrades,setRecentTrades] = useState([])
-  const [dexData,setDexData] = useState(null)
-  const [sim,setSim]=useState(()=>({traders:createTraders(),pool:0,vol:0,price:.001,price0:.001,priceHist:[],crown:null,ksWallet:null,ksFired:false,roundId:1,tLeft:ROUND_DURATION,settled:null,autoCount:8,history:[]}))
-  const simRef=useRef(sim)
-  const [feedItems,setFeedItems]=useState([])
-  const [toast,setToast]=useState(null)
-  const [showHTP,setShowHTP]=useState(false)
-  const [wIdx,setWIdx]=useState(0)
-  const wAngleRef=useRef(0);const wIdxRef=useRef(0);const wTickRef=useRef(0)
-  const wheelRef=useRef(null);const chartRef=useRef(null)
-  const price0Ref=useRef(.001)
-  const addFeed=useCallback((ico,html)=>{const t=new Date();const ts=String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');setFeedItems(p=>[{ico,html,ts,id:Date.now()+Math.random()},...p].slice(0,60))},[])
 
   // Contract reads
   const {data:contractData,refetch:refetchContract} = useReadContracts({
@@ -200,17 +150,6 @@ export default function App() {
     poll();const t=setInterval(poll,8000);return()=>clearInterval(t)
   },[])
 
-  // Poll DexScreener for real price/volume data
-  useEffect(()=>{
-    const poll=async()=>{
-      try{
-        const r=await fetch(`https://api.dexscreener.com/latest/dex/pairs/base/${DEXSCREENER_PAIR}`,{signal:AbortSignal.timeout(8000)})
-        if(r.ok){const d=await r.json();if(d.pair)setDexData(d.pair)}
-      }catch{}
-    }
-    poll();const t=setInterval(poll,30000);return()=>clearInterval(t)
-  },[])
-
   const timeLeft = chainStartTime ? Math.max(0,chainStartTime+ROUND_DURATION-now) : null
   const inKW = timeLeft!==null && timeLeft/ROUND_DURATION < 0.167
 
@@ -229,6 +168,10 @@ export default function App() {
   },[])
 
   // Simulation state
+  const [sim,setSim]=useState(()=>({traders:createTraders(),pool:0,vol:0,price:.001,price0:.001,priceHist:[],crown:null,ksWallet:null,ksFired:false,roundId:1,tLeft:ROUND_DURATION,settled:null,autoCount:8,history:[]}))
+  const simRef=useRef(sim);simRef.current=sim
+  const [feedItems,setFeedItems]=useState([])
+  const addFeed=useCallback((ico,html)=>{const t=new Date();const ts=String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');setFeedItems(p=>[{ico,html,ts,id:Date.now()+Math.random()},...p].slice(0,60))},[])
 
   useEffect(()=>{
     if(oracleLive)return
@@ -271,23 +214,23 @@ export default function App() {
   const pool=isLive?chainPool:sim.pool
   const displayTLeft=isLive?(timeLeft??ROUND_DURATION):sim.tLeft
   const crown=isLive?(chainCrown?shortAddr(chainCrown):'—'):(sim.crown??'—')
-  // Use DexScreener price (most accurate), fallback to oracle estimate
-  const dexPriceEth = dexData?.priceNative ? parseFloat(dexData.priceNative) : 0
   const rawPrice = oracleData?.price ? parseInt(oracleData.price) : 0
-  const price = dexPriceEth > 0 ? dexPriceEth : (isLive?(rawPrice > 0 ? rawPrice / 1e36 : 0):sim.price)
-  const dexVol24h = dexData?.volume?.h24 ? parseFloat(dexData.volume.h24) : 0
-  const dexTxns24h = dexData?.txns?.h24 ? (dexData.txns.h24.buys||0)+(dexData.txns.h24.sells||0) : 0
-  const dexMcap = dexData?.marketCap ? parseFloat(dexData.marketCap) : 0
+  const price=isLive?(rawPrice > 0 ? rawPrice / 1e36 : 0):sim.price
+  const price0Ref=useRef(.001)
   if(!isLive)price0Ref.current=sim.price0
   const chgPct=price0Ref.current>0?((price-price0Ref.current)/price0Ref.current*100):0
   const isUp=chgPct>=0
-  const dexPriceChange = dexData?.priceChange?.h24 != null ? parseFloat(dexData.priceChange.h24) : chgPct
 
   const ICONS=['🐋','⚡','🎯','🔥','🛡','🤖','🐳','🤝']
   const liveBoard=isLive&&oracleData?.leaderboard?oracleData.leaderboard.map((e,i)=>({n:e.short||shortAddr(e.wallet),fullAddr:e.wallet,cls:'trader',ico:ICONS[i%ICONS.length],pnl:weiToEth(e.realized),vol:weiToEth(e.volume),rank:e.rank,d:i*.18+'s'})):null
   const board=liveBoard??getLeaderboard(simRef.current.traders)
 
+  const [toast,setToast]=useState(null)
   const showToast=useCallback((msg,dur=3000)=>{setToast(msg);setTimeout(()=>setToast(null),dur)},[])
+  const [showHTP,setShowHTP]=useState(false)
+  const [wIdx,setWIdx]=useState(0)
+  const wAngleRef=useRef(0);const wIdxRef=useRef(0);const wTickRef=useRef(0)
+  const wheelRef=useRef(null);const chartRef=useRef(null)
 
   useEffect(()=>{
     if(!board.length)return
@@ -335,31 +278,20 @@ export default function App() {
           <div className="hdr-right">
             <div className="chip live">{isLive?'LIVE':'SIM'}</div>
             <div className="chip">ROUND #{roundId}</div>
-            <div className="chip" style={{color:'var(--teal)',borderColor:'rgba(0,212,170,.3)'}}>
-              {dexData?.priceUsd ? `$${parseFloat(dexData.priceUsd).toFixed(8)}` : `Ξ${price.toFixed(5)}`}
-            </div>
+            <div className="chip" style={{color:'var(--teal)',borderColor:'rgba(0,212,170,.3)'}}>Ξ{price.toFixed(5)}</div>
             <div className="chip" style={{color:'var(--gold)',borderColor:'rgba(255,201,64,.3)'}}>👑 {crown}</div>
             <button className="hdr-btn howto" onClick={()=>setShowHTP(true)}>? HOW TO PLAY</button>
             <a href="https://x.com/feewars" target="_blank" rel="noreferrer" className="hdr-btn" style={{textDecoration:'none',color:'inherit'}}>𝕏 FOLLOW</a>
-            <button className="hdr-btn bankr-page" onClick={()=>window.open(BANKR_URL,'_blank')}>BANKR PAGE ↗</button>
-            <button className="hdr-btn buy" onClick={()=>window.open(BANKR_SWAP_URL,'_blank')}>BUY ON BANKR ↗</button>
+            <button className="hdr-btn buy" onClick={()=>window.open(BANKR_URL,'_blank')}>BUY ON BANKR ↗</button>
             <ConnectButton label="CONNECT" accountStatus="address" chainStatus="icon" showBalance={false}/>
           </div>
         </header>
 
-                  {dexData && <div style={{display:'flex',gap:6,marginBottom:8,flexWrap:'wrap'}}>
-            {[['24H VOL',`$${dexVol24h>=1000?(dexVol24h/1000).toFixed(1)+'K':dexVol24h.toFixed(0)}`,'var(--teal)'],['TXNS 24H',dexTxns24h,'var(--white)'],['MCAP',dexMcap>=1000000?`$${(dexMcap/1000000).toFixed(2)}M`:dexMcap>=1000?`$${(dexMcap/1000).toFixed(1)}K`:`$${dexMcap.toFixed(0)}`,'var(--gold)'],['BUYS',dexData?.txns?.h24?.buys||0,'var(--teal)'],['SELLS',dexData?.txns?.h24?.sells||0,'var(--red)']].map(([l,v,c])=>(
-              <div key={l} style={{background:'var(--s1)',border:'1px solid var(--border)',padding:'4px 10px',fontFamily:'var(--mono)',fontSize:9,display:'flex',gap:7,alignItems:'center'}}>
-                <span style={{color:'var(--gray)',letterSpacing:2}}>{l}</span><span style={{color:c,fontWeight:700}}>{v}</span>
-              </div>
-            ))}
-            <a href={DEXSCREENER_URL} target="_blank" rel="noopener noreferrer" style={{background:'var(--s1)',border:'1px solid rgba(0,82,255,.3)',padding:'4px 10px',fontFamily:'var(--mono)',fontSize:9,color:'var(--base)',textDecoration:'none',display:'flex',alignItems:'center',gap:5}}>📊 CHART ↗</a>
-          </div>}
-          <div className="stats">
+        <div className="stats">
           <div className="sc ab"><div className="sc-lbl">Prize Pool</div><div className="sc-val blue">Ξ{fmt4(pool)}</div><div className="sc-sub">${(pool*WETH_USD).toLocaleString('en-US',{maximumFractionDigits:0})}</div></div>
           <div className="sc ag" style={{position:'relative'}}><div className="sc-lbl">Round Timer</div><span className={cdClass}>{roundExpired ? 'SETTLING' : `${String(m).padStart(2,'0')}:${String(s2).padStart(2,'0')}`}</span><div className="sc-sub">ROUND #{roundId}</div><div className={`kw-bar${inKW?' active':''}`}/></div>
-          <div className="sc at"><div className="sc-lbl">Token Price</div><div className={`sc-val ${dexPriceChange>=0?'teal':'red'}`}>{dexData?.priceUsd?`$${parseFloat(dexData.priceUsd).toFixed(8)}`:(price>0?`Ξ${price.toFixed(7)}`:'—')}</div><div className="sc-sub" style={{color:dexPriceChange>=0?'var(--teal)':'var(--red)'}}>{dexData?.priceChange?.h24!=null?`${dexData.priceChange.h24>=0?'+':''}${parseFloat(dexData.priceChange.h24).toFixed(2)}%`:`${isUp?'+':''}${fmt2(chgPct)}%`}</div></div>
-          <div className="sc ar"><div className="sc-lbl">{isLive?'Traders':'Volume'}</div><div className="sc-val red">{isLive?(oracleData?.traders>0?oracleData.traders:(recentTrades.length>0?new Set(recentTrades.map(t=>t.wallet)).size:0)):fmt2(sim.vol)+' Ξ'}</div><div className="sc-sub">this round</div></div>
+          <div className="sc at"><div className="sc-lbl">Token Price</div><div className="sc-val teal">Ξ{price.toFixed(5)}</div><div className="sc-sub" style={{color:isUp?'var(--teal)':'var(--red)'}}>{isUp?'+':''}{fmt2(chgPct)}%</div></div>
+          <div className="sc ar"><div className="sc-lbl">{isLive?'Traders':'Volume'}</div><div className="sc-val red">{isLive?(oracleData?.traders??0):fmt2(sim.vol)+' Ξ'}</div><div className="sc-sub">this round</div></div>
           <div className="sc aw"><div className="sc-lbl">Fighters</div><div className="sc-val">{board.length}</div><div className="sc-sub">active</div></div>
         </div>
 
@@ -369,24 +301,13 @@ export default function App() {
               <div className="panel" style={{borderColor:'rgba(0,82,255,.4)'}}>
                 <div className="ph" style={{borderColor:'rgba(0,82,255,.2)'}}><span className="pt blue">◈ BATTLE WHEEL</span><span className="pm">{isLive?'LIVE':'SIMULATED'}</span></div>
                 <div className="wheel-wrap">
-                  <canvas ref={wheelRef} width={220} height={220} style={{flexShrink:0,maxWidth:'100%'}}/>
+                  <canvas ref={wheelRef} width={146} height={146} style={{flexShrink:0}}/>
                   {wheelEntry&&<div className="wi"><div className="wi-rank">{wIdx===0?'RANK #1 · 👑 CROWN':`RANK #${wIdx+1}`}</div><div className="wi-name">{wheelEntry.n}</div><div className={`wi-pnl${wheelEntry.pnl<0?' neg':''}`}>{wheelEntry.pnl>=0?'+':''}{fmt4(wheelEntry.pnl)} Ξ</div><div className="wi-vol">VOL: {fmt4(wheelEntry.vol||0)} Ξ</div><div className={`wi-cls ${wheelEntry.cls||'trader'}`}>{(wheelEntry.cls||'TRADER').toUpperCase()}</div></div>}
                 </div>
               </div>
-              <div className="panel" style={{display:'flex',flexDirection:'column'}}>
-                <div className="ph"><span className="pt teal">◈ TOKEN PRICE</span>
-                  <span style={{display:'flex',alignItems:'center',gap:8}}>
-                    <span style={{color:isUp?'var(--teal)':'var(--red)',fontFamily:'var(--mono)',fontSize:9}}>{isUp?'▲ +':'▼ '}{Math.abs(chgPct).toFixed(2)}%</span>
-                    <span className="pm">LIVE</span>
-                  </span>
-                </div>
-                <div style={{width:'100%',height:320,overflow:'hidden',position:'relative',flexGrow:1}}>
-                  <iframe
-                    src="https://dexscreener.com/base/0x26494e2be99bde2f02800b71e87bf4623b0df94dd3041d0b09799501bc81b945?embed=1&theme=dark&trades=0&info=0"
-                    style={{width:'100%',height:352,border:'none',position:'absolute',top:0,left:0}}
-                    title="$FEES Price Chart"
-                  />
-                </div>
+              <div className="panel">
+                <div className="ph"><span className="pt teal">◈ TOKEN PRICE</span><span className="pm">{isLive?'LIVE':'SIMULATED'}</span></div>
+                <div className="chart-wrap"><canvas ref={chartRef} className="chart-canvas"/><div className="chart-ov"><span className="cp">Ξ{price.toFixed(5)}</span><span className={`cc ${isUp?'up':'dn'}`}>{isUp?'▲ +':'▼ '}{Math.abs(chgPct).toFixed(2)}%</span></div></div>
               </div>
             </div>
 
@@ -407,7 +328,7 @@ export default function App() {
           <div className="sidebar">
             <div className="panel" style={{borderColor:'rgba(0,212,170,.3)'}}>
               <div className="ph" style={{borderColor:'rgba(0,212,170,.2)'}}><span className="pt teal">◈ MY POSITION</span><span className="pm">WALLET</span></div>
-              <MyPosition oracleData={oracleData} usdPrice={dexData?.priceUsd?parseFloat(dexData.priceUsd):0}/>
+              <MyPosition oracleData={oracleData}/>
             </div>
 
             <div className="panel" style={{borderColor:'rgba(255,201,64,.3)'}}>
