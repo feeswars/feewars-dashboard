@@ -50,7 +50,7 @@ function Starfield() {
   return <canvas ref={ref} style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none'}}/>
 }
 
-function MyPosition({oracleData,feesBal,usdPrice=0}) {
+function MyPosition({oracleData,usdPrice=0}) {
   const {address,isConnected} = useAccount()
   const {data:wethBal} = useBalance({address,token:WETH_BASE,chainId:base.id,enabled:!!address,watch:true})
   const {data:feesTokenBal} = useBalance({address,token:TOKEN_ADDRESS,chainId:base.id,enabled:!!address,watch:true})
@@ -90,8 +90,7 @@ function MyPosition({oracleData,feesBal,usdPrice=0}) {
           ≈ ${(parseFloat(feesTokenBal.formatted)*usdPrice).toFixed(4)} USD
         </div>}
       </>}
-      {feesDisplay&&<><div className="pos-lbl" style={{marginTop:10}}>$FEES BALANCE</div>
-      <div className="pos-val" style={{color:'var(--gold)'}}>{parseFloat(feesDisplay.formatted).toLocaleString('en-US',{maximumFractionDigits:0})} FEES</div></>}
+
       <div className="pos-lbl">INSTANT CLAIMABLE</div>
       <div className="pos-val pos">{fmt4(claimEth)} Ξ</div>
       <button className="claim-btn" disabled={claimEth===0} onClick={()=>alert('Claim tx — wagmi write integration coming')}>CLAIM REWARDS</button>
@@ -369,7 +368,7 @@ export default function App() {
           <div className="sidebar">
             <div className="panel" style={{borderColor:'rgba(0,212,170,.3)'}}>
               <div className="ph" style={{borderColor:'rgba(0,212,170,.2)'}}><span className="pt teal">◈ MY POSITION</span><span className="pm">WALLET</span></div>
-              <MyPosition oracleData={oracleData} feesBal={feesBal} usdPrice={dexData?.priceUsd?parseFloat(dexData.priceUsd):0}/>
+              <MyPosition oracleData={oracleData} usdPrice={dexData?.priceUsd?parseFloat(dexData.priceUsd):0}/>
             </div>
 
             <div className="panel" style={{borderColor:'rgba(255,201,64,.3)'}}>
