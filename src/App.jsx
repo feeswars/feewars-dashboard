@@ -12,21 +12,26 @@ import {
 const ARENA_ADDRESS  = import.meta.env.VITE_ARENA_ADDRESS
 const TOKEN_ADDRESS  = import.meta.env.VITE_TOKEN_ADDRESS
 const ORACLE_API_URL = import.meta.env.VITE_ORACLE_API_URL || ''
-const BANKR_URL      = 'https://bankr.bot/launches/0x8104766a179702658dcb8b90e20c5ec80fc9aba3'
-const BANKR_SWAP_URL = 'https://swap.bankr.bot/?inputToken=ETH&outputToken=0x8104766a179702658dcb8b90e20c5ec80fc9aba3'
+const BANKR_URL      = 'https://bankr.bot'
+const BANKR_SWAP_URL = 'https://swap.bankr.bot'
 const X_URL          = 'https://x.com/feewars'
 const UNISWAP_URL    = BANKR_SWAP_URL
 const WETH_BASE      = '0x4200000000000000000000000000000000000006'
 const ROUND_DURATION = 3600
-const DEXSCREENER_PAIR = '0xbd9d2b96293bbbd76a7398a7c44b4b51907d97e4d4d8288be885357acee89265'
+const DEXSCREENER_PAIR = ''
 const DEXSCREENER_URL  = `https://dexscreener.com/base/${DEXSCREENER_PAIR}`
 
 const ARENA_ABI = [
-  {inputs:[],name:'currentRoundId',outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
-  {inputs:[],name:'roundStartTime', outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
-  {inputs:[],name:'arenaCarry',     outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
-  {inputs:[],name:'feeCrownHolder', outputs:[{type:'address'}],stateMutability:'view',type:'function'},
-  {inputs:[{type:'address'}],name:'pendingClaims',outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
+  {inputs:[],name:'currentRoundId',  outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
+  {inputs:[],name:'roundStartTime',  outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
+  {inputs:[],name:'arenaCarry',      outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
+  {inputs:[],name:'feeCrownHolder',  outputs:[{type:'address'}],stateMutability:'view',type:'function'},
+  {inputs:[],name:'feesTokenPool',   outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
+  // v5: claimable returns (wethAmount, feesAmount) tuple
+  {inputs:[{type:'address'}],name:'claimable',outputs:[{type:'uint256',name:'wethAmount'},{type:'uint256',name:'feesAmount'}],stateMutability:'view',type:'function'},
+  {inputs:[{type:'address'}],name:'pendingFeesTokenClaims',outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
+  {inputs:[],name:'claim',           outputs:[],stateMutability:'nonpayable',type:'function'},
+  {inputs:[],name:'claimFeesToken',  outputs:[],stateMutability:'nonpayable',type:'function'},
 ]
 const ERC20_ABI = [
   {inputs:[{type:'address'}],name:'balanceOf',outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
@@ -55,10 +60,16 @@ function MyPosition({oracleData,usdPrice=0}) {
   const {data:wethBal} = useBalance({address,token:WETH_BASE,chainId:base.id,enabled:!!address,watch:true})
   const {data:feesTokenBal} = useBalance({address,token:TOKEN_ADDRESS,chainId:base.id,enabled:!!address,watch:true})
   const {data:claimData} = useReadContracts({
-    contracts:[{address:ARENA_ADDRESS,abi:ARENA_ABI,functionName:'pendingClaims',args:[address],chainId:base.id}],
+    contracts:[
+      {address:ARENA_ADDRESS,abi:ARENA_ABI,functionName:'claimable',args:[address],chainId:base.id},
+      {address:ARENA_ADDRESS,abi:ARENA_ABI,functionName:'pendingFeesTokenClaims',args:[address],chainId:base.id},
+    ],
     enabled:!!address&&!!ARENA_ADDRESS,
   })
-  const claimEth = claimData?.[0]?.result ? parseFloat(formatEther(claimData[0].result)) : 0
+  // v5: claimable() returns [wethAmount, feesAmount] tuple
+  const claimResult = claimData?.[0]?.result
+  const claimEth = claimResult ? parseFloat(formatEther(Array.isArray(claimResult) ? claimResult[0] : claimResult)) : 0
+  const claimFeesAmt = claimData?.[1]?.result ? parseFloat(formatEther(claimData[1].result)) : 0
   const myEntry = oracleData?.leaderboard?.find(e=>e.wallet?.toLowerCase()===address?.toLowerCase())
   const pnlEth  = myEntry ? weiToEth(myEntry.realized) : 0
   const volEth  = myEntry ? weiToEth(myEntry.volume)   : 0
@@ -93,7 +104,14 @@ function MyPosition({oracleData,usdPrice=0}) {
 
       <div className="pos-lbl">INSTANT CLAIMABLE</div>
       <div className="pos-val pos">{fmt4(claimEth)} Ξ</div>
-      <button className="claim-btn" disabled={claimEth===0} onClick={()=>alert('Claim tx — wagmi write integration coming')}>CLAIM REWARDS</button>
+      <button className="claim-btn" disabled={claimEth===0}
+        onClick={()=>alert('Connect wallet and call claim() on the Arena contract')}>
+        CLAIM WETH {claimEth>0?`(${fmt4(claimEth)} Ξ)`:''}
+      </button>
+      {claimFeesAmt>0&&<button className="claim-btn" style={{marginTop:6,background:'rgba(255,201,64,.15)',border:'1px solid rgba(255,201,64,.4)',color:'var(--gold)'}}
+        onClick={()=>alert('Connect wallet and call claimFeesToken() on the Arena contract')}>
+        CLAIM $FEES ({claimFeesAmt.toLocaleString('en-US',{maximumFractionDigits:0})} FEES)
+      </button>}
       {myEntry?.rank&&<><div style={{marginTop:12,paddingTop:10,borderTop:'1px solid var(--border)'}}><div className="pos-lbl">CURRENT RANK</div><div className="pos-val">#{myEntry.rank}</div></div></>}
     </div>
   )
@@ -352,12 +370,13 @@ export default function App() {
                     <span className="pm">LIVE</span>
                   </span>
                 </div>
-                <iframe
-                  src="https://www.geckoterminal.com/base/pools/0xbd9d2b96293bbbd76a7398a7c44b4b51907d97e4d4d8288be885357acee89265?embed=1&info=0&swaps=0&grayscale=0&light_chart=0"
-                  style={{width:'100%',height:260,border:'none',flexGrow:1,minHeight:200}}
-                  title="$FEES Price Chart"
-                  allow="clipboard-write"
-                />
+                <div style={{display:'flex',alignItems:'center',justifyContent:'center',
+                  height:260,flexGrow:1,flexDirection:'column',gap:12,
+                  fontFamily:'var(--mono)',color:'var(--gray)'}}>
+                  <div style={{fontSize:28}}>📊</div>
+                  <div style={{fontSize:9,letterSpacing:3,color:'var(--base)'}}>LAUNCHING SOON</div>
+                  <div style={{fontSize:8,letterSpacing:2}}>CHART WILL APPEAR HERE</div>
+                </div>
               </div>
             </div>
 
