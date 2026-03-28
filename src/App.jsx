@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { useAccount, useReadContracts, useBalance } from 'wagmi'
+import { useAccount, useReadContracts, useBalance, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { base } from 'wagmi/chains'
 import { formatEther } from 'viem'
 import {
@@ -74,6 +74,22 @@ function MyPosition({oracleData,usdPrice=0}) {
   const pnlEth  = myEntry ? weiToEth(myEntry.realized) : 0
   const volEth  = myEntry ? weiToEth(myEntry.volume)   : 0
 
+  const {writeContract, data:claimTxHash, isPending:claimPending, error:claimError} = useWriteContract()
+  const {writeContract:writeFeesContract, data:feesTxHash, isPending:feesPending} = useWriteContract()
+  const {isLoading:claimConfirming, isSuccess:claimSuccess} = useWaitForTransactionReceipt({hash:claimTxHash})
+  const {isLoading:feesConfirming, isSuccess:feesSuccess} = useWaitForTransactionReceipt({hash:feesTxHash})
+
+  const handleClaimWeth = () => writeContract({
+    address: ARENA_ADDRESS,
+    abi: ARENA_ABI,
+    functionName: 'claim',
+  })
+  const handleClaimFees = () => writeFeesContract({
+    address: ARENA_ADDRESS,
+    abi: ARENA_ABI,
+    functionName: 'claimFeesToken',
+  })
+
   if (!isConnected) return (
     <div className="pos-connect-prompt">
       <div className="ico">🔗</div>
@@ -111,13 +127,14 @@ function MyPosition({oracleData,usdPrice=0}) {
 
       <div className="pos-lbl">INSTANT CLAIMABLE</div>
       <div className="pos-val pos">{fmt4(claimEth)} Ξ</div>
-      <button className="claim-btn" disabled={claimEth===0}
-        onClick={()=>alert('Connect wallet and call claim() on the Arena contract')}>
-        CLAIM WETH {claimEth>0?`(${fmt4(claimEth)} Ξ)`:''}
+      <button className="claim-btn" disabled={claimEth===0||claimPending||claimConfirming}
+        onClick={handleClaimWeth}>
+        {claimPending||claimConfirming ? 'CLAIMING...' : claimSuccess ? 'CLAIMED! ✅' : `CLAIM WETH ${claimEth>0?`(${fmt4(claimEth)} Ξ)`:''}`}
       </button>
       {claimFeesAmt>0&&<button className="claim-btn" style={{marginTop:6,background:'rgba(255,201,64,.15)',border:'1px solid rgba(255,201,64,.4)',color:'var(--gold)'}}
-        onClick={()=>alert('Connect wallet and call claimFeesToken() on the Arena contract')}>
-        CLAIM $FEES ({claimFeesAmt.toLocaleString('en-US',{maximumFractionDigits:0})} FEES)
+        disabled={feesPending||feesConfirming}
+        onClick={handleClaimFees}>
+        {feesPending||feesConfirming ? 'CLAIMING...' : feesSuccess ? 'CLAIMED! ✅' : `CLAIM $FEES (${claimFeesAmt.toLocaleString('en-US',{maximumFractionDigits:0})} FEES)`}
       </button>}
       {myEntry?.rank&&<><div style={{marginTop:12,paddingTop:10,borderTop:'1px solid var(--border)'}}><div className="pos-lbl">CURRENT RANK</div><div className="pos-val">#{myEntry.rank}</div></div></>}
     </div>
