@@ -12,7 +12,7 @@ import {
 const ARENA_ADDRESS  = import.meta.env.VITE_ARENA_ADDRESS
 const TOKEN_ADDRESS  = import.meta.env.VITE_TOKEN_ADDRESS
 const ORACLE_API_URL = import.meta.env.VITE_ORACLE_API_URL || ''
-const BANKR_URL      = `https://bankr.bot/token/0x8104766a179702658dcb8b90e20c5ec80fc9aba3`
+const BANKR_URL      = `https://bankr.bot/launches/0x8104766a179702658dcb8b90e20c5ec80fc9aba3`
 const X_URL          = 'https://x.com/feewars'
 const UNISWAP_URL    = BANKR_URL
 const WETH_BASE      = '0x4200000000000000000000000000000000000006'
@@ -325,8 +325,32 @@ export default function App() {
             </div>
 
             <div className="panel">
-              <div className="ph"><span className="pt blue">◈ BATTLE LOG</span><span className="pm">{isLive?'LIVE':'SIMULATED'}</span></div>
-              <div className="feed">{feedItems.map(f=><div key={f.id} className="fi"><span className="fi-t">{f.ts}</span><span className="fi-i">{f.ico}</span><span className="fi-b" dangerouslySetInnerHTML={{__html:f.html}}/></div>)}</div>
+              <div className="ph"><span className="pt blue">◈ RECENT TRADES</span><span className="pm">{isLive?'LIVE':'SIMULATED'}</span></div>
+              <div style={{overflowY:'auto',maxHeight:220}}>
+                {isLive && recentTrades.length > 0 ? (
+                  <>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',padding:'4px 8px',fontFamily:'var(--mono)',fontSize:8,color:'var(--gray)',borderBottom:'1px solid var(--border)'}}>
+                      <span>TIME</span><span>TYPE</span><span>WALLET</span><span style={{textAlign:'right'}}>WETH</span>
+                    </div>
+                    {recentTrades.map((t,i)=>{
+                      const isBuy = t.action==='BUY'
+                      const wethEth = (parseInt(t.weth||'0')/1e18).toFixed(4)
+                      const age = Math.floor((Date.now()/1000 - parseInt(t.ts||'0'))/60)
+                      const timeStr = age < 1 ? 'now' : age < 60 ? `${age}m` : `${Math.floor(age/60)}h`
+                      return(
+                        <div key={i} style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',padding:'5px 8px',fontFamily:'var(--mono)',fontSize:9,borderBottom:'1px solid rgba(255,255,255,.04)',background:isBuy?'rgba(0,212,170,.04)':'rgba(255,51,85,.04)'}}>
+                          <span style={{color:'var(--gray)'}}>{timeStr}</span>
+                          <span style={{color:isBuy?'var(--teal)':'var(--red)',fontWeight:700}}>{t.action}</span>
+                          <span style={{color:'var(--base)'}}>{t.short}</span>
+                          <span style={{textAlign:'right',color:isBuy?'var(--teal)':'var(--red)'}}>{wethEth}Ξ</span>
+                        </div>
+                      )
+                    })}
+                  </>
+                ) : (
+                  <div className="feed">{feedItems.map(f=><div key={f.id} className="fi"><span className="fi-t">{f.ts}</span><span className="fi-i">{f.ico}</span><span className="fi-b" dangerouslySetInnerHTML={{__html:f.html}}/></div>)}</div>
+                )}
+              </div>
             </div>
 
             <div className="panel" style={{borderColor:'rgba(0,82,255,.3)'}}>
