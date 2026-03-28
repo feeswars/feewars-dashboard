@@ -320,7 +320,7 @@ export default function App() {
           <div className="sc ab"><div className="sc-lbl">Prize Pool</div><div className="sc-val blue">Ξ{fmt4(pool)}</div><div className="sc-sub">${(pool*WETH_USD).toLocaleString('en-US',{maximumFractionDigits:0})}</div></div>
           <div className="sc ag" style={{position:'relative'}}><div className="sc-lbl">Round Timer</div><span className={cdClass}>{roundExpired ? 'SETTLING' : `${String(m).padStart(2,'0')}:${String(s2).padStart(2,'0')}`}</span><div className="sc-sub">ROUND #{roundId}</div><div className={`kw-bar${inKW?' active':''}`}/></div>
           <div className="sc at"><div className="sc-lbl">Token Price</div><div className={`sc-val ${isUp?'teal':'red'}`}>Ξ{price>0?price.toFixed(7):'0.0000000'}</div><div className="sc-sub" style={{color:isUp?'var(--teal)':'var(--red)'}}>{isUp?'+':''}{fmt2(chgPct)}%</div>{dexData?.priceUsd&&<div className="sc-sub">${parseFloat(dexData.priceUsd).toFixed(8)}</div>}</div>
-          <div className="sc ar"><div className="sc-lbl">{isLive?'Traders':'Volume'}</div><div className="sc-val red">{isLive?(oracleData?.traders??0):fmt2(sim.vol)+' Ξ'}</div><div className="sc-sub">this round</div></div>
+          <div className="sc ar"><div className="sc-lbl">{isLive?'Traders':'Volume'}</div><div className="sc-val red">{isLive?(oracleData?.traders>0?oracleData.traders:(recentTrades.length>0?new Set(recentTrades.map(t=>t.wallet)).size:0)):fmt2(sim.vol)+' Ξ'}</div><div className="sc-sub">this round</div></div>
           <div className="sc aw"><div className="sc-lbl">Fighters</div><div className="sc-val">{board.length}</div><div className="sc-sub">active</div></div>
         </div>
 
@@ -409,5 +409,4 @@ export default function App() {
       <div className={`toast${toast?' show':''}`}>{toast}</div>
     </>
   )
-}  const uniqueTraders = recentTrades.length > 0 ? new Set(recentTrades.map(t=>t.wallet)).size : 0
-  const traders=isLive?(oracleData?.traders>0?oracleData.traders:uniqueTraders):sim.traders.length
+}
