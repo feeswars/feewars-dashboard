@@ -269,6 +269,7 @@ export default function App() {
   const rawPrice = oracleData?.price ? parseInt(oracleData.price) : 0
   const price = dexPriceEth > 0 ? dexPriceEth : (isLive?(rawPrice > 0 ? rawPrice / 1e36 : 0):sim.price)
   const dexVol24h = dexData?.volume?.h24 ? parseFloat(dexData.volume.h24) : 0
+  const dexPriceChange = dexData?.priceChange?.h24 != null ? parseFloat(dexData.priceChange.h24) : chgPct
   const dexTxns24h = dexData?.txns?.h24 ? (dexData.txns.h24.buys||0)+(dexData.txns.h24.sells||0) : 0
   const dexMcap = dexData?.marketCap ? parseFloat(dexData.marketCap) : 0
   if(!isLive)price0Ref.current=sim.price0
@@ -350,7 +351,13 @@ export default function App() {
           <div className="stats">
           <div className="sc ab"><div className="sc-lbl">Prize Pool</div><div className="sc-val blue">Ξ{fmt4(pool)}</div><div className="sc-sub">${(pool*WETH_USD).toLocaleString('en-US',{maximumFractionDigits:0})}</div></div>
           <div className="sc ag" style={{position:'relative'}}><div className="sc-lbl">Round Timer</div><span className={cdClass}>{roundExpired ? 'SETTLING' : `${String(m).padStart(2,'0')}:${String(s2).padStart(2,'0')}`}</span><div className="sc-sub">ROUND #{roundId}</div><div className={`kw-bar${inKW?' active':''}`}/></div>
-          <div className="sc at"><div className="sc-lbl">Token Price</div><div className={`sc-val ${isUp?'teal':'red'}`}>Ξ{price>0?price.toFixed(7):'0.0000000'}</div><div className="sc-sub" style={{color:isUp?'var(--teal)':'var(--red)'}}>{isUp?'+':''}{fmt2(chgPct)}%</div>{dexData?.priceUsd&&<div className="sc-sub">${parseFloat(dexData.priceUsd).toFixed(8)}</div>}</div>
+          <div className="sc at"><div className="sc-lbl">Token Price</div>
+          <div className={`sc-val ${dexPriceChange>=0?'teal':'red'}`}>
+            {dexData?.priceUsd?`$${parseFloat(dexData.priceUsd).toFixed(8)}`:(price>0?`Ξ${price.toFixed(7)}`:'—')}
+          </div>
+          <div className="sc-sub" style={{color:dexPriceChange>=0?'var(--teal)':'var(--red)'}}>
+            {dexData?.priceChange?.h24!=null?`${dexData.priceChange.h24>=0?'+':''}${parseFloat(dexData.priceChange.h24).toFixed(2)}%`:`${isUp?'+':''}${fmt2(chgPct)}%`}
+          </div></div>
           <div className="sc ar"><div className="sc-lbl">{isLive?'Traders':'Volume'}</div><div className="sc-val red">{isLive?(oracleData?.traders>0?oracleData.traders:(recentTrades.length>0?new Set(recentTrades.map(t=>t.wallet)).size:0)):fmt2(sim.vol)+' Ξ'}</div><div className="sc-sub">this round</div></div>
           <div className="sc aw"><div className="sc-lbl">Fighters</div><div className="sc-val">{board.length}</div><div className="sc-sub">active</div></div>
         </div>
