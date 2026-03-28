@@ -113,6 +113,7 @@ function HowToPlay({onClose}) {
 export default function App() {
   const [oracleData,setOracleData] = useState(null)
   const [oracleLive,setOracleLive] = useState(false)
+  const [recentTrades,setRecentTrades] = useState([])
 
   // Contract reads
   const {data:contractData,refetch:refetchContract} = useReadContracts({
@@ -136,6 +137,18 @@ export default function App() {
   const [now,setNow] = useState(Math.floor(Date.now()/1000))
   useEffect(()=>{const t=setInterval(()=>setNow(Math.floor(Date.now()/1000)),1000);return()=>clearInterval(t)},[])
   useEffect(()=>{const t=setInterval(()=>refetchContract(),30000);return()=>clearInterval(t)},[refetchContract])
+
+  // Poll recent trades from oracle
+  useEffect(()=>{
+    if(!ORACLE_API_URL)return
+    const poll=async()=>{
+      try{
+        const r=await fetch(`${ORACLE_API_URL}/api/trades`,{signal:AbortSignal.timeout(5000)})
+        if(r.ok){const d=await r.json();setRecentTrades(d.trades||[])}
+      }catch{}
+    }
+    poll();const t=setInterval(poll,8000);return()=>clearInterval(t)
+  },[])
 
   const timeLeft = chainStartTime ? Math.max(0,chainStartTime+ROUND_DURATION-now) : null
   const inKW = timeLeft!==null && timeLeft/ROUND_DURATION < 0.167
