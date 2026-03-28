@@ -67,10 +67,13 @@ const WHEEL_COLS = ['#0052FF','#00d4aa','#ffc940','#ff3355','#ff8800','#aa44ff',
 // Cached logo image for wheel hub
 let _logoImg = null
 function getLogoImg() {
+  if (typeof window === 'undefined') return null
   if (_logoImg) return _logoImg
-  _logoImg = new Image()
-  _logoImg.crossOrigin = 'anonymous'
-  _logoImg.src = 'https://i.imgur.com/Lz4mwY0.jpeg'
+  try {
+    _logoImg = new window.Image()
+    _logoImg.crossOrigin = 'anonymous'
+    _logoImg.src = 'https://i.imgur.com/Lz4mwY0.jpeg'
+  } catch(e) { return null }
   return _logoImg
 }
 
@@ -189,7 +192,7 @@ function drawHub(ctx, CX, CY, HUB, angle) {
 
   // Logo image clipped to circle
   const img = getLogoImg()
-  if (img.complete && img.naturalWidth > 0) {
+  if (img && img.complete && img.naturalWidth > 0) {
     ctx.save()
     ctx.beginPath(); ctx.arc(CX,CY,HUB-1,0,Math.PI*2); ctx.clip()
     ctx.drawImage(img, CX-HUB+1, CY-HUB+1, (HUB-1)*2, (HUB-1)*2)
