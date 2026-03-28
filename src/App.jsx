@@ -365,7 +365,7 @@ export default function App() {
 
         <div className="main">
           <div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}} className="top-panels">
+            <div className="top-panels" style={{gap:12,marginBottom:12}}>
               <div className="panel" style={{borderColor:'rgba(0,82,255,.4)',minHeight:340}}>
                 <div className="ph" style={{borderColor:'rgba(0,82,255,.2)'}}><span className="pt blue">◈ BATTLE WHEEL</span><span className="pm">{isLive?'LIVE':'SIMULATED'}</span></div>
                 <div className="wheel-wrap">
