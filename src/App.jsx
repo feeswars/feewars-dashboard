@@ -201,7 +201,8 @@ export default function App() {
   const pool=isLive?chainPool:sim.pool
   const displayTLeft=isLive?(timeLeft??ROUND_DURATION):sim.tLeft
   const crown=isLive?(chainCrown?shortAddr(chainCrown):'—'):(sim.crown??'—')
-  const price=isLive?(oracleData?.price?weiToEth(oracleData.price):.001):sim.price
+  const rawPrice = oracleData?.price ? parseInt(oracleData.price) : 0
+  const price=isLive?(rawPrice > 0 ? rawPrice / 1e36 : 0):sim.price
   const price0Ref=useRef(.001)
   if(!isLive)price0Ref.current=sim.price0
   const chgPct=price0Ref.current>0?((price-price0Ref.current)/price0Ref.current*100):0
@@ -236,8 +237,9 @@ export default function App() {
     if(oracleLive)addFeed('🔴','<span class="fb">ORACLE LIVE</span> — real traders, real swaps on Base')
   },[oracleLive])
 
+  const roundExpired = displayTLeft === 0 && chainStartTime !== null
   const m=Math.floor(displayTLeft/60),s2=Math.floor(displayTLeft%60)
-  const cdClass=displayTLeft<8?'cd hot':displayTLeft<20?'cd warn':'cd'
+  const cdClass=roundExpired?'cd hot':displayTLeft<8?'cd hot':displayTLeft<20?'cd warn':'cd'
   const wheelEntry=board[wIdx]||board[0]
   const {settled,autoCount,history}=sim
 
@@ -264,7 +266,7 @@ export default function App() {
 
         <div className="stats">
           <div className="sc ab"><div className="sc-lbl">Prize Pool</div><div className="sc-val blue">Ξ{fmt4(pool)}</div><div className="sc-sub">${(pool*WETH_USD).toLocaleString('en-US',{maximumFractionDigits:0})}</div></div>
-          <div className="sc ag" style={{position:'relative'}}><div className="sc-lbl">Round Timer</div><span className={cdClass}>{String(m).padStart(2,'0')}:{String(s2).padStart(2,'0')}</span><div className="sc-sub">ROUND #{roundId}</div><div className={`kw-bar${inKW?' active':''}`}/></div>
+          <div className="sc ag" style={{position:'relative'}}><div className="sc-lbl">Round Timer</div><span className={cdClass}>{roundExpired ? 'SETTLING' : `${String(m).padStart(2,'0')}:${String(s2).padStart(2,'0')}`}</span><div className="sc-sub">ROUND #{roundId}</div><div className={`kw-bar${inKW?' active':''}`}/></div>
           <div className="sc at"><div className="sc-lbl">Token Price</div><div className="sc-val teal">Ξ{price.toFixed(5)}</div><div className="sc-sub" style={{color:isUp?'var(--teal)':'var(--red)'}}>{isUp?'+':''}{fmt2(chgPct)}%</div></div>
           <div className="sc ar"><div className="sc-lbl">{isLive?'Traders':'Volume'}</div><div className="sc-val red">{isLive?(oracleData?.traders??0):fmt2(sim.vol)+' Ξ'}</div><div className="sc-sub">this round</div></div>
           <div className="sc aw"><div className="sc-lbl">Fighters</div><div className="sc-val">{board.length}</div><div className="sc-sub">active</div></div>
