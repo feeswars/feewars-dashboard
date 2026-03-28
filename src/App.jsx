@@ -87,20 +87,27 @@ function MyPosition({oracleData,usdPrice=0}) {
     <div className="pos-inner">
       <div className="pos-lbl">WALLET</div>
       <div style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--base)',marginBottom:8}}>{shortAddr(address)}</div>
+      {/* $FEES Balance + Buy Button */}
+      <div style={{background:'rgba(0,82,255,.07)',border:'1px solid rgba(0,82,255,.2)',padding:'10px 12px',marginBottom:10}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+          <div style={{fontFamily:'var(--mono)',fontSize:8,letterSpacing:2,color:'var(--gray)'}}>$FEES BALANCE</div>
+          <button onClick={()=>window.open(BANKR_SWAP_URL,'_blank')}
+            style={{fontFamily:'var(--px)',fontSize:6,letterSpacing:1,padding:'4px 8px',background:'var(--base)',color:'#fff',border:'none',cursor:'pointer',whiteSpace:'nowrap'}}>
+            BUY ↗
+          </button>
+        </div>
+        <div style={{fontFamily:'var(--px)',fontSize:11,color:'var(--gold)'}}>
+          {feesTokenBal?parseFloat(feesTokenBal.formatted).toLocaleString('en-US',{maximumFractionDigits:0}):'—'} FEES
+        </div>
+        {usdPrice>0&&feesTokenBal&&<div style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--gray)',marginTop:3}}>
+          ≈ ${(parseFloat(feesTokenBal?.formatted||'0')*usdPrice).toFixed(2)} USD
+        </div>}
+      </div>
       {wethBal&&<><div className="pos-lbl">WETH BALANCE</div><div className="pos-val">{parseFloat(wethBal.formatted).toFixed(4)} Ξ</div></>}
       <div className="pos-lbl" style={{marginTop:10}}>MY PNL THIS ROUND</div>
       <div className={`pos-val ${pnlEth>=0?'pos':'neg'}`}>{pnlEth>=0?'+':''}{fmt4(pnlEth)} Ξ</div>
       <div className="pos-lbl">MY VOLUME</div>
       <div className="pos-val">{fmt4(volEth)} Ξ</div>
-      {feesTokenBal&&parseFloat(feesTokenBal.formatted)>0&&<>
-        <div className="pos-lbl" style={{marginTop:8}}>$FEES HOLDINGS</div>
-        <div className="pos-val" style={{color:'var(--gold)',fontSize:'clamp(10px,1.5vw,13px)'}}>
-          {parseFloat(feesTokenBal.formatted).toLocaleString('en-US',{maximumFractionDigits:0})} FEES
-        </div>
-        {usdPrice>0&&<div style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--gray)',marginTop:2}}>
-          ≈ ${(parseFloat(feesTokenBal.formatted)*usdPrice).toFixed(4)} USD
-        </div>}
-      </>}
 
       <div className="pos-lbl">INSTANT CLAIMABLE</div>
       <div className="pos-val pos">{fmt4(claimEth)} Ξ</div>
