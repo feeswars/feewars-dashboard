@@ -327,7 +327,9 @@ export default function App() {
           <div className="hdr-right">
             <div className="chip live">{isLive?'LIVE':'SIM'}</div>
             <div className="chip">ROUND #{roundId}</div>
-            <div className="chip" style={{color:'var(--teal)',borderColor:'rgba(0,212,170,.3)'}}>Ξ{price.toFixed(5)}</div>
+            <div className="chip" style={{color:'var(--teal)',borderColor:'rgba(0,212,170,.3)'}}>
+              {dexData?.priceUsd ? `$${parseFloat(dexData.priceUsd).toFixed(8)}` : `Ξ${price.toFixed(5)}`}
+            </div>
             <div className="chip" style={{color:'var(--gold)',borderColor:'rgba(255,201,64,.3)'}}>👑 {crown}</div>
             <button className="hdr-btn howto" onClick={()=>setShowHTP(true)}>? HOW TO PLAY</button>
             <a href="https://x.com/feewars" target="_blank" rel="noreferrer" className="hdr-btn" style={{textDecoration:'none',color:'inherit'}}>𝕏 FOLLOW</a>
@@ -370,11 +372,13 @@ export default function App() {
                     <span className="pm">LIVE</span>
                   </span>
                 </div>
-                <iframe
-                  src="https://dexscreener.com/base/0x26494e2be99bde2f02800b71e87bf4623b0df94dd3041d0b09799501bc81b945?embed=1&theme=dark&trades=0&info=0"
-                  style={{width:'100%',height:260,border:'none',flexGrow:1,minHeight:200}}
-                  title="$FEES Price Chart"
-                />
+                <div style={{width:'100%',height:320,overflow:'hidden',position:'relative',flexGrow:1}}>
+                  <iframe
+                    src="https://dexscreener.com/base/0x26494e2be99bde2f02800b71e87bf4623b0df94dd3041d0b09799501bc81b945?embed=1&theme=dark&trades=0&info=0"
+                    style={{width:'100%',height:352,border:'none',position:'absolute',top:0,left:0}}
+                    title="$FEES Price Chart"
+                  />
+                </div>
               </div>
             </div>
 
