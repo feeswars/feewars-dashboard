@@ -331,7 +331,82 @@ body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .flash{position:fixed;inset:0;z-index:880;pointer-events:none;opacity:0;transition:opacity .12s}
 .flash.show{opacity:1}
 
-/* ── Responsive ── */
-@media(max-width:1060px){.main{grid-template-columns:1fr}.sidebar{display:grid;grid-template-columns:1fr 1fr}}
-@media(max-width:700px){.stats{grid-template-columns:1fr 1fr}.sidebar{grid-template-columns:1fr}.vc{display:none}}
-@media(max-width:440px){.stats{grid-template-columns:1fr}}
+/* ── Responsive / Mobile ── */
+
+/* Tablet */
+@media(max-width:1060px){
+  .main{grid-template-columns:1fr}
+  .sidebar{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .stats{grid-template-columns:repeat(3,1fr)}
+}
+
+/* Mobile landscape / large phone */
+@media(max-width:768px){
+  .app{padding:0 10px 60px}
+  .header{padding:10px 0 10px;gap:8px}
+  .logo{font-size:13px;letter-spacing:2px}
+  .logo-sub{font-size:7px;letter-spacing:2px}
+  .base-ball{width:32px;height:32px;font-size:15px}
+  .hdr-right{gap:6px}
+  /* Hide secondary header chips on small screens */
+  .chip.round-chip,.chip.pool-chip,.chip.crown-chip{display:none}
+  .hdr-btn.howto{display:none}
+  .hdr-btn.buy{font-size:7px;padding:7px 10px}
+  /* Stats - 2 columns on mobile */
+  .stats{grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+  .sc{padding:10px 10px 8px}
+  .sc-lbl{font-size:7px;letter-spacing:2px;margin-bottom:5px}
+  .sc-val{font-size:11px}
+  .cd{font-size:16px}
+  /* Hide 5th stat card (Fighters) to keep 2x2 grid clean */
+  .sc:nth-child(5){grid-column:1/-1}
+  /* Main single column */
+  .main{grid-template-columns:1fr;gap:8px}
+  /* Sidebar goes full-width single column */
+  .sidebar{grid-template-columns:1fr;gap:8px}
+  /* Battle wheel smaller */
+  canvas{max-width:100%!important}
+  /* Panels */
+  .ph{padding:8px 12px}
+  .pt{font-size:7px}
+  /* Rankings table */
+  .lb-row{grid-template-columns:24px 1fr auto auto!important}
+  .lb-vol{display:none}
+  /* My position panel */
+  .pos-inner{padding:10px}
+  /* Prize split */
+  .pb-row{flex-direction:column;gap:4px}
+  /* FAQ */
+  .faq-q{font-size:10px;padding:10px 12px}
+  /* Modal */
+  .settle-box,.htp-box{max-width:100vw;width:100%}
+  .htp-box{max-height:100vh}
+}
+
+/* Small phones */
+@media(max-width:480px){
+  .app{padding:0 8px 60px}
+  .logo{font-size:11px;letter-spacing:1px}
+  .base-ball{width:28px;height:28px;font-size:13px}
+  .stats{grid-template-columns:1fr 1fr;gap:5px}
+  .cd{font-size:14px;letter-spacing:1px}
+  .sc-val{font-size:10px}
+  /* Stack header vertically */
+  .header{flex-direction:column;align-items:flex-start;gap:8px}
+  .hdr-right{width:100%;justify-content:space-between}
+  /* Make buy button full width on tiny screens */
+  .hdr-btn.buy{flex:1;text-align:center}
+  /* Recent trades compact */
+  .trade-row{font-size:8px!important}
+  /* Hide decorative CRT effect on mobile for perf */
+  .crt{display:none}
+}
+
+/* Ensure touch targets are big enough */
+@media(hover:none){
+  .hdr-btn{min-height:40px;display:flex;align-items:center;justify-content:center}
+  .claim-btn{min-height:44px}
+  .faq-q{min-height:44px}
+  .htp-tab{min-height:40px}
+  button{min-height:36px}
+}
