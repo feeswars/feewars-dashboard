@@ -12,13 +12,13 @@ import {
 const ARENA_ADDRESS  = import.meta.env.VITE_ARENA_ADDRESS
 const TOKEN_ADDRESS  = import.meta.env.VITE_TOKEN_ADDRESS
 const ORACLE_API_URL = import.meta.env.VITE_ORACLE_API_URL || ''
-const BANKR_URL      = 'https://bankr.bot'
-const BANKR_SWAP_URL = 'https://swap.bankr.bot'
+const BANKR_URL      = 'https://bankr.bot/launches/0xa31fbab1c431225a444afbd8acd0aa8cd0d2eba3'
+const BANKR_SWAP_URL = 'https://swap.bankr.bot/?inputToken=ETH&outputToken=0xa31fbab1c431225a444afbd8acd0aa8cd0d2eba3'
 const X_URL          = 'https://x.com/feewars'
 const UNISWAP_URL    = BANKR_SWAP_URL
 const WETH_BASE      = '0x4200000000000000000000000000000000000006'
 const ROUND_DURATION = 3600
-const DEXSCREENER_PAIR = ''
+const DEXSCREENER_PAIR = '0x26494e2be99bde2f02800b71e87bf4623b0df94dd3041d0b09799501bc81b945'
 const DEXSCREENER_URL  = `https://dexscreener.com/base/${DEXSCREENER_PAIR}`
 
 const ARENA_ABI = [
@@ -370,13 +370,12 @@ export default function App() {
                     <span className="pm">LIVE</span>
                   </span>
                 </div>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'center',
-                  height:260,flexGrow:1,flexDirection:'column',gap:12,
-                  fontFamily:'var(--mono)',color:'var(--gray)'}}>
-                  <div style={{fontSize:28}}>📊</div>
-                  <div style={{fontSize:9,letterSpacing:3,color:'var(--base)'}}>LAUNCHING SOON</div>
-                  <div style={{fontSize:8,letterSpacing:2}}>CHART WILL APPEAR HERE</div>
-                </div>
+                <iframe
+                  src="https://www.geckoterminal.com/base/pools/0x498581fF718922c3f8e6A244956aF099B2652b2b?embed=1&info=0&swaps=0&grayscale=0&light_chart=0"
+                  style={{width:'100%',height:260,border:'none',flexGrow:1,minHeight:200}}
+                  title="$FEES Price Chart"
+                  allow="clipboard-write"
+                />
               </div>
             </div>
 
