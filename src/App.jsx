@@ -50,7 +50,7 @@ function Starfield() {
   return <canvas ref={ref} style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none'}}/>
 }
 
-function MyPosition({oracleData,feesBal}) {
+function MyPosition({oracleData,feesBal,usdPrice=0}) {
   const {address,isConnected} = useAccount()
   const {data:wethBal} = useBalance({address,token:WETH_BASE,chainId:base.id,enabled:!!address,watch:true})
   const {data:feesTokenBal} = useBalance({address,token:TOKEN_ADDRESS,chainId:base.id,enabled:!!address,watch:true})
@@ -86,8 +86,8 @@ function MyPosition({oracleData,feesBal}) {
         <div className="pos-val" style={{color:'var(--gold)',fontSize:'clamp(10px,1.5vw,13px)'}}>
           {parseFloat(feesTokenBal.formatted).toLocaleString('en-US',{maximumFractionDigits:0})} FEES
         </div>
-        {dexData&&<div className="pos-sub" style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--gray)'}}>
-          ≈ ${(parseFloat(feesTokenBal.formatted)*parseFloat(dexData.priceUsd||0)).toFixed(2)} USD
+        {usdPrice>0&&<div style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--gray)',marginTop:2}}>
+          ≈ ${(parseFloat(feesTokenBal.formatted)*usdPrice).toFixed(4)} USD
         </div>}
       </>}
       {feesDisplay&&<><div className="pos-lbl" style={{marginTop:10}}>$FEES BALANCE</div>
@@ -130,6 +130,16 @@ export default function App() {
   const [oracleLive,setOracleLive] = useState(false)
   const [recentTrades,setRecentTrades] = useState([])
   const [dexData,setDexData] = useState(null)
+  const [sim,setSim]=useState(()=>({traders:createTraders(),pool:0,vol:0,price:.001,price0:.001,priceHist:[],crown:null,ksWallet:null,ksFired:false,roundId:1,tLeft:ROUND_DURATION,settled:null,autoCount:8,history:[]}))
+  const simRef=useRef(sim)
+  const [feedItems,setFeedItems]=useState([])
+  const [toast,setToast]=useState(null)
+  const [showHTP,setShowHTP]=useState(false)
+  const [wIdx,setWIdx]=useState(0)
+  const wAngleRef=useRef(0);const wIdxRef=useRef(0);const wTickRef=useRef(0)
+  const wheelRef=useRef(null);const chartRef=useRef(null)
+  const price0Ref=useRef(.001)
+  const addFeed=useCallback((ico,html)=>{const t=new Date();const ts=String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');setFeedItems(p=>[{ico,html,ts,id:Date.now()+Math.random()},...p].slice(0,60))},[])
 
   // Contract reads
   const {data:contractData,refetch:refetchContract} = useReadContracts({
@@ -195,10 +205,6 @@ export default function App() {
   },[])
 
   // Simulation state
-  const [sim,setSim]=useState(()=>({traders:createTraders(),pool:0,vol:0,price:.001,price0:.001,priceHist:[],crown:null,ksWallet:null,ksFired:false,roundId:1,tLeft:ROUND_DURATION,settled:null,autoCount:8,history:[]}))
-  const simRef=useRef(sim);simRef.current=sim
-  const [feedItems,setFeedItems]=useState([])
-  const addFeed=useCallback((ico,html)=>{const t=new Date();const ts=String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');setFeedItems(p=>[{ico,html,ts,id:Date.now()+Math.random()},...p].slice(0,60))},[])
 
   useEffect(()=>{
     if(oracleLive)return
@@ -248,7 +254,6 @@ export default function App() {
   const dexVol24h = dexData?.volume?.h24 ? parseFloat(dexData.volume.h24) : 0
   const dexTxns24h = dexData?.txns?.h24 ? (dexData.txns.h24.buys||0)+(dexData.txns.h24.sells||0) : 0
   const dexMcap = dexData?.marketCap ? parseFloat(dexData.marketCap) : 0
-  const price0Ref=useRef(.001)
   if(!isLive)price0Ref.current=sim.price0
   const chgPct=price0Ref.current>0?((price-price0Ref.current)/price0Ref.current*100):0
   const isUp=chgPct>=0
@@ -257,12 +262,7 @@ export default function App() {
   const liveBoard=isLive&&oracleData?.leaderboard?oracleData.leaderboard.map((e,i)=>({n:e.short||shortAddr(e.wallet),fullAddr:e.wallet,cls:'trader',ico:ICONS[i%ICONS.length],pnl:weiToEth(e.realized),vol:weiToEth(e.volume),rank:e.rank,d:i*.18+'s'})):null
   const board=liveBoard??getLeaderboard(simRef.current.traders)
 
-  const [toast,setToast]=useState(null)
   const showToast=useCallback((msg,dur=3000)=>{setToast(msg);setTimeout(()=>setToast(null),dur)},[])
-  const [showHTP,setShowHTP]=useState(false)
-  const [wIdx,setWIdx]=useState(0)
-  const wAngleRef=useRef(0);const wIdxRef=useRef(0);const wTickRef=useRef(0)
-  const wheelRef=useRef(null);const chartRef=useRef(null)
 
   useEffect(()=>{
     if(!board.length)return
@@ -369,7 +369,7 @@ export default function App() {
           <div className="sidebar">
             <div className="panel" style={{borderColor:'rgba(0,212,170,.3)'}}>
               <div className="ph" style={{borderColor:'rgba(0,212,170,.2)'}}><span className="pt teal">◈ MY POSITION</span><span className="pm">WALLET</span></div>
-              <MyPosition oracleData={oracleData} feesBal={feesBal}/>
+              <MyPosition oracleData={oracleData} feesBal={feesBal} usdPrice={dexData?.priceUsd?parseFloat(dexData.priceUsd):0}/>
             </div>
 
             <div className="panel" style={{borderColor:'rgba(255,201,64,.3)'}}>
