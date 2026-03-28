@@ -18,6 +18,8 @@ const X_URL          = 'https://x.com/feewars'
 const UNISWAP_URL    = BANKR_SWAP_URL
 const WETH_BASE      = '0x4200000000000000000000000000000000000006'
 const ROUND_DURATION = 3600
+const DEXSCREENER_PAIR = '0xbd9d2b96293bbbd76a7398a7c44b4b51907d97e4d4d8288be885357acee89265'
+const DEXSCREENER_URL  = `https://dexscreener.com/base/${DEXSCREENER_PAIR}`
 
 const ARENA_ABI = [
   {inputs:[],name:'currentRoundId',outputs:[{type:'uint256'}],stateMutability:'view',type:'function'},
@@ -115,6 +117,7 @@ export default function App() {
   const [oracleData,setOracleData] = useState(null)
   const [oracleLive,setOracleLive] = useState(false)
   const [recentTrades,setRecentTrades] = useState([])
+  const [dexData,setDexData] = useState(null)
 
   // Contract reads
   const {data:contractData,refetch:refetchContract} = useReadContracts({
@@ -149,6 +152,17 @@ export default function App() {
       }catch{}
     }
     poll();const t=setInterval(poll,8000);return()=>clearInterval(t)
+  },[])
+
+  // Poll DexScreener for real price/volume data
+  useEffect(()=>{
+    const poll=async()=>{
+      try{
+        const r=await fetch(`https://api.dexscreener.com/latest/dex/pairs/base/${DEXSCREENER_PAIR}`,{signal:AbortSignal.timeout(8000)})
+        if(r.ok){const d=await r.json();if(d.pair)setDexData(d.pair)}
+      }catch{}
+    }
+    poll();const t=setInterval(poll,30000);return()=>clearInterval(t)
   },[])
 
   const timeLeft = chainStartTime ? Math.max(0,chainStartTime+ROUND_DURATION-now) : null
@@ -215,8 +229,13 @@ export default function App() {
   const pool=isLive?chainPool:sim.pool
   const displayTLeft=isLive?(timeLeft??ROUND_DURATION):sim.tLeft
   const crown=isLive?(chainCrown?shortAddr(chainCrown):'—'):(sim.crown??'—')
+  // Use DexScreener price (most accurate), fallback to oracle estimate
+  const dexPriceEth = dexData?.priceNative ? parseFloat(dexData.priceNative) : 0
   const rawPrice = oracleData?.price ? parseInt(oracleData.price) : 0
-  const price=isLive?(rawPrice > 0 ? rawPrice / 1e36 : 0):sim.price
+  const price = dexPriceEth > 0 ? dexPriceEth : (isLive?(rawPrice > 0 ? rawPrice / 1e36 : 0):sim.price)
+  const dexVol24h = dexData?.volume?.h24 ? parseFloat(dexData.volume.h24) : 0
+  const dexTxns24h = dexData?.txns?.h24 ? (dexData.txns.h24.buys||0)+(dexData.txns.h24.sells||0) : 0
+  const dexMcap = dexData?.marketCap ? parseFloat(dexData.marketCap) : 0
   const price0Ref=useRef(.001)
   if(!isLive)price0Ref.current=sim.price0
   const chgPct=price0Ref.current>0?((price-price0Ref.current)/price0Ref.current*100):0
@@ -289,10 +308,18 @@ export default function App() {
           </div>
         </header>
 
-        <div className="stats">
+                  {dexData && <div style={{display:'flex',gap:6,marginBottom:8,flexWrap:'wrap'}}>
+            {[['24H VOL',`$${dexVol24h>=1000?(dexVol24h/1000).toFixed(1)+'K':dexVol24h.toFixed(0)}`,'var(--teal)'],['TXNS 24H',dexTxns24h,'var(--white)'],['MCAP',dexMcap>=1000000?`$${(dexMcap/1000000).toFixed(2)}M`:dexMcap>=1000?`$${(dexMcap/1000).toFixed(1)}K`:`$${dexMcap.toFixed(0)}`,'var(--gold)'],['BUYS',dexData?.txns?.h24?.buys||0,'var(--teal)'],['SELLS',dexData?.txns?.h24?.sells||0,'var(--red)']].map(([l,v,c])=>(
+              <div key={l} style={{background:'var(--s1)',border:'1px solid var(--border)',padding:'4px 10px',fontFamily:'var(--mono)',fontSize:9,display:'flex',gap:7,alignItems:'center'}}>
+                <span style={{color:'var(--gray)',letterSpacing:2}}>{l}</span><span style={{color:c,fontWeight:700}}>{v}</span>
+              </div>
+            ))}
+            <a href={DEXSCREENER_URL} target="_blank" rel="noopener noreferrer" style={{background:'var(--s1)',border:'1px solid rgba(0,82,255,.3)',padding:'4px 10px',fontFamily:'var(--mono)',fontSize:9,color:'var(--base)',textDecoration:'none',display:'flex',alignItems:'center',gap:5}}>📊 CHART ↗</a>
+          </div>}
+          <div className="stats">
           <div className="sc ab"><div className="sc-lbl">Prize Pool</div><div className="sc-val blue">Ξ{fmt4(pool)}</div><div className="sc-sub">${(pool*WETH_USD).toLocaleString('en-US',{maximumFractionDigits:0})}</div></div>
           <div className="sc ag" style={{position:'relative'}}><div className="sc-lbl">Round Timer</div><span className={cdClass}>{roundExpired ? 'SETTLING' : `${String(m).padStart(2,'0')}:${String(s2).padStart(2,'0')}`}</span><div className="sc-sub">ROUND #{roundId}</div><div className={`kw-bar${inKW?' active':''}`}/></div>
-          <div className="sc at"><div className="sc-lbl">Token Price</div><div className="sc-val teal">Ξ{price.toFixed(5)}</div><div className="sc-sub" style={{color:isUp?'var(--teal)':'var(--red)'}}>{isUp?'+':''}{fmt2(chgPct)}%</div></div>
+          <div className="sc at"><div className="sc-lbl">Token Price</div><div className={`sc-val ${isUp?'teal':'red'}`}>Ξ{price>0?price.toFixed(7):'0.0000000'}</div><div className="sc-sub" style={{color:isUp?'var(--teal)':'var(--red)'}}>{isUp?'+':''}{fmt2(chgPct)}%</div>{dexData?.priceUsd&&<div className="sc-sub">${parseFloat(dexData.priceUsd).toFixed(8)}</div>}</div>
           <div className="sc ar"><div className="sc-lbl">{isLive?'Traders':'Volume'}</div><div className="sc-val red">{isLive?(oracleData?.traders??0):fmt2(sim.vol)+' Ξ'}</div><div className="sc-sub">this round</div></div>
           <div className="sc aw"><div className="sc-lbl">Fighters</div><div className="sc-val">{board.length}</div><div className="sc-sub">active</div></div>
         </div>
@@ -382,4 +409,5 @@ export default function App() {
       <div className={`toast${toast?' show':''}`}>{toast}</div>
     </>
   )
-}
+}  const uniqueTraders = recentTrades.length > 0 ? new Set(recentTrades.map(t=>t.wallet)).size : 0
+  const traders=isLive?(oracleData?.traders>0?oracleData.traders:uniqueTraders):sim.traders.length
