@@ -255,7 +255,7 @@ export default function App() {
               <div className="logo"><em>FEE</em> WARS</div>
               <div className="logo-sub">
                 THE ARENA · BUILT ON BASE &nbsp;
-                <a href="https://x.com/FeeWarsArena" target="_blank" rel="noopener noreferrer"
+                <a href="https://x.com/feewars" target="_blank" rel="noopener noreferrer"
                   style={{color:'var(--base)',textDecoration:'none',fontSize:9,fontFamily:'var(--mono)',letterSpacing:1}}>
                   𝕏 FOLLOW
                 </a>
