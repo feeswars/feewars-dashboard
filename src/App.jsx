@@ -371,10 +371,9 @@ export default function App() {
                   </span>
                 </div>
                 <iframe
-                  src="https://www.geckoterminal.com/base/pools/0x498581fF718922c3f8e6A244956aF099B2652b2b?embed=1&info=0&swaps=0&grayscale=0&light_chart=0"
+                  src="https://dexscreener.com/base/0x26494e2be99bde2f02800b71e87bf4623b0df94dd3041d0b09799501bc81b945?embed=1&theme=dark&trades=0&info=0"
                   style={{width:'100%',height:260,border:'none',flexGrow:1,minHeight:200}}
                   title="$FEES Price Chart"
-                  allow="clipboard-write"
                 />
               </div>
             </div>
